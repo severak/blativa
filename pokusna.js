@@ -3,7 +3,7 @@ var def = kainEngine.def;
 var item = {
 	desc : 'Nic zvláštního.',
 	aku : 'něco'
-}
+};
 
 var G = {};
 
@@ -25,7 +25,9 @@ snack.ready( function() {
 	K.defineVerb('take', 'seber', ['aku']);
 	K.defineVerb('use', 'použij', ['aku']);
 	K.defineVerb('use_with', 'použij (na)', ['aku', 'aku']);
-	K.defineVerb('wait', 'čekej', []);
+	K.defineVerb('wait', 'čekej', [], 'OK. Co dál?');
+	K.defineVerb('wait2', 'čekej2', [], 'Stále čekám...');
 	K.here = 'zde';
-	K.print('Severák uvádí...').print('Testovací hru');
+	//K.print('Severák uvádí...').print('Testovací hru');
+    window.KainInstance = K;
 });

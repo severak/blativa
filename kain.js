@@ -7,6 +7,7 @@ var kainProto = {
 	cmdArgs : [],
 	queue : [],
 	verbsCases : {},
+    verbsFallback : {},
 	outputNode : null,
 	verbsNode : null,
 	itemsNode : null,
@@ -16,7 +17,7 @@ var kainProto = {
 	init : function(world) {
 		this.world = world;
 		this.queue = [];
-		this.cmdAgrs = [];
+		this.cmdArgs = [];
 		this.verbsCases = {};
 		return this;
 	},
@@ -38,12 +39,13 @@ var kainProto = {
 	
 	print : function(text) 
 	{
-		if (this.blocked) {
+		this._print(text);
+        /*if (this.blocked) {
 			this.queue.push(text);
 		} else {
 			this.blocked = true;
 			this._print(text);
-		}
+		}*/
 		return this;
 	},
 	
@@ -64,33 +66,55 @@ var kainProto = {
 			this.blocked = false;
 		}
 	},
+
+    _callOrEcho : function(fun) {
+        if (_isType('String', fun)) {
+            this.print(fun);
+        } else {
+            fun.call(this,[]);
+        }
+    },
 	
 	verbClick : function(e)
 	{
 		snack.preventDefault(e);
+        snack.stopPropagation(e);
 		var verb = _getHash(e);
 		this.verb = verb;
 		this.verbsNode.addClass('hidden');
 		if (this.verbsCases[verb].length==0) {
-			
+            console.log('#1');
+			var fun = this.verbsFallback[verb];
+            this._callOrEcho(fun);
+            this.verbsNode.removeClass('hidden');
 		} else {
+            console.log('#2');
 			this.listReachable(this.verbsCases[verb]);
 			this.itemsNode.removeClass('hidden');
 			this.cmdArgs = [];
 		}
+        console.log('OOK');
 	},
 	
 	itemClick : function(e)
 	{
 		snack.preventDefault(e);
-		snack.stopPropagation(e);
+        snack.stopPropagation(e);
 		var iitem = _getHash(e);
 		this.cmdArgs.push(iitem);
-		console.log( e.target.hash );
-		var caseLen = this.verbsCases[this.verb].length
-		console.log(caseLen);
+		console.log( iitem );
+		var caseLen = this.verbsCases[this.verb].length;
+		//console.log(caseLen);
 		if (this.cmdArgs.length==caseLen) {
-			console.log(this.verb + '(' + (this.cmdArgs.join(', ') ) + ')')
+            if (this.world[this.cmdArgs[0]] && this.world[this.cmdArgs[0]][this.verb]) {
+                var fun = this.world[this.cmdArgs[0]][this.verb];
+            } else {
+                var fun = this.verbsFallback[this.verb];
+            }
+            this._callOrEcho(fun);
+            this.itemsNode.addClass('hidden');
+            this.verbsNode.removeClass('hidden');
+
 		} else {
 			var thisCase = this.verbsCases[this.verb][this.cmdArgs.length];
 			this.listReachable(thisCase);
@@ -98,11 +122,12 @@ var kainProto = {
 		
 	},
 	
-	defineVerb : function(id, title, cases)
+	defineVerb : function(id, title, cases, fallback)
 	{
 		var def = '<li><a href="#' + id + '">' + title + '</a></li>';
 		this.verbsNode[0].innerHTML = this.verbsNode[0].innerHTML + def;
-		this.verbsCases[id] = cases;
+		this.verbsCases[id] = cases || [];
+        this.verbsFallback[id] = fallback || 'A?';
 		return this;
 	},
 	
@@ -119,12 +144,18 @@ var kainProto = {
 		}
 		this.itemsNode[0].innerHTML = buff.join(' ');
 	}
-} 
+};
 
 var _getHash = function(event) {
 	var target = snack.getTarget(event);
 	return target.getAttribute('href').substr(1);
-}
+};
+
+var _isType = function(type, obj) {
+    var clas = Object.prototype.toString.call(obj).slice(8, -1);
+    return obj !== undefined && obj !== null && clas === type;
+};
+
 
 if (!snack.getTarget) {
 	snack.getTarget = function(e) {
@@ -149,7 +180,7 @@ kainEngine = {
 	setup : function(world, dom){
 		var K = Object.create(kainProto);
 		K.init(world);
-		K.setDom(dom)
+		K.setDom(dom);
 		K.bind();
 		return K;
 	}
